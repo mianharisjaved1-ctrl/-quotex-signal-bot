@@ -2,8 +2,8 @@ import time
 import telebot
 import random
 
-TOKEN = "YOUR_BOT_TOKEN"
-CHAT_ID = "YOUR_CHAT_ID"
+TOKEN = "8671909594:AAETOOdgQ8XfW9UiAUpIUR5RFjIFpi97c-w"
+CHAT_ID = "7036550926"
 
 bot = telebot.TeleBot(TOKEN)
 
