@@ -22,7 +22,7 @@ bot.send_message(CHAT_ID, "🚀 Simple Forex Signal Bot Started")
 def get_data(symbol):
     url = f"https://api.twelvedata.com/time_series?symbol={symbol}&interval=1min&outputsize=50&apikey=demo"
     data = requests.get(url).json()
-
+print("API RESPONSE:", data)
     if "values" not in data:
         return None
 
