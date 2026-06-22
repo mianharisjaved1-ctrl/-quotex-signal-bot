@@ -1,82 +1,68 @@
 import telebot
 import time
 import requests
-import pandas as pd
 
 TOKEN = "8671909594:AAGzbMdw9SCbk2DP16MabrR_6u4PVc1gjyI"
 CHAT_ID = "7036550926"
 
 bot = telebot.TeleBot(TOKEN)
 
-# Forex pairs (real market symbols via free API proxy)
 PAIRS = {
-    "EURUSD": "EURUSD",
-    "GBPUSD": "GBPUSD",
-    "USDJPY": "USDJPY",
-    "GOLD": "XAUUSD"
+    "EURUSD": "EUR/USD",
+    "GBPUSD": "GBP/USD",
+    "USDJPY": "USD/JPY",
+    "GOLD": "XAU/USD"
 }
 
-bot.send_message(CHAT_ID, "🚀 Simple Forex Signal Bot Started")
+bot.send_message(CHAT_ID, "🚀 Light Forex Bot Started (Stable Version)")
 
-# -------- GET REAL DATA --------
-def get_data(symbol):
-    url = f"https://api.twelvedata.com/time_series?symbol={symbol}&interval=1min&outputsize=50&apikey=demo"
+# -------- GET PRICE --------
+def get_price(symbol):
+    url = f"https://api.twelvedata.com/price?symbol={symbol}&apikey=demo"
     data = requests.get(url).json()
-print("API RESPONSE:", data)
-    if "values" not in data:
+
+    if "price" not in data:
         return None
 
-    closes = [float(i["close"]) for i in data["values"]]
-    closes.reverse()
-    return closes
+    return float(data["price"])
 
-# -------- INDICATORS --------
-def ema(data, period):
-    return pd.Series(data).ewm(span=period).mean().iloc[-1]
+# -------- SIMPLE SIGNAL LOGIC --------
+# (light EMA simulation using price movement)
+last_prices = {}
 
-def rsi(data, period=14):
-    series = pd.Series(data)
-    delta = series.diff()
+def signal_logic(symbol, price):
+    if symbol not in last_prices:
+        last_prices[symbol] = price
+        return "⏸ NO TRADE"
 
-    gain = delta.where(delta > 0, 0).rolling(period).mean()
-    loss = -delta.where(delta < 0, 0).rolling(period).mean()
+    old = last_prices[symbol]
+    last_prices[symbol] = price
 
-    rs = gain / loss
-    return 100 - (100 / (1 + rs)).iloc[-1]
-
-# -------- SIGNAL ENGINE --------
-def get_signal(data):
-    short = ema(data, 5)
-    long = ema(data, 15)
-    rsi_val = rsi(data)
-
-    if short > long and rsi_val < 70:
-        return "📈 BUY", rsi_val
-    elif short < long and rsi_val > 30:
-        return "📉 SELL", rsi_val
+    if price > old:
+        return "📈 BUY"
+    elif price < old:
+        return "📉 SELL"
     else:
-        return "⏸ NO TRADE", rsi_val
+        return "⏸ NO TRADE"
 
 # -------- LOOP --------
 while True:
     try:
         for name, symbol in PAIRS.items():
 
-            data = get_data(symbol)
+            price = get_price(symbol)
 
-            if data is None or len(data) < 20:
+            if price is None:
+                bot.send_message(CHAT_ID, f"⚠️ Data issue for {name}")
                 continue
 
-            signal, rsi_val = get_signal(data)
-
-            price = data[-1]
+            signal = signal_logic(symbol, price)
 
             bot.send_message(
                 CHAT_ID,
-                f"📊 FOREX SIGNAL\n\n"
+                f"📊 FOREX LIGHT SIGNAL\n\n"
                 f"💱 Pair: {name}\n"
-                f"💰 Price: {price:.4f}\n"
-                f"📉 RSI: {rsi_val:.2f}\n"
+                f"💰 Price: {price}\n"
                 f"⚡ Signal: {signal}"
             )
 
